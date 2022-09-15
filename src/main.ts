@@ -1,6 +1,13 @@
-import {getInput, getInputBoolean} from "./utils/inputs";
-import {getAwsCredentials, getRequestId} from "./utils/environment";
-import {DescribeTasksCommand, ECSClient, LaunchType, RunTaskCommand} from "@aws-sdk/client-ecs";
+import {getInput} from "./utils/inputs";
+import {getAwsCredentials} from "./utils/environment";
+import {
+  DescribeTasksCommand,
+  ECSClient,
+  LaunchType,
+  ListTaskDefinitionsCommand,
+  RunTaskCommand,
+  SortOrder
+} from "@aws-sdk/client-ecs";
 import * as core from '@actions/core'
 
 type TaskArn = string;
@@ -14,9 +21,20 @@ async function startTask(
     command: string[]
 ) : Promise<TaskArn> {
 
+  const listDefinitionsCommand = new ListTaskDefinitionsCommand({
+    familyPrefix: taskDefinition,
+    sort: SortOrder.DESC,
+    maxResults: 1
+  })
+  const taskDefinitions = await ecsClient.send(listDefinitionsCommand);
+
+  if (taskDefinitions.taskDefinitionArns === undefined || taskDefinitions.taskDefinitionArns.length === 0) {
+    throw Error(`Task definition ${taskDefinition} not found`);
+  }
+
   const runTaskCommand = new RunTaskCommand({
     cluster: cluster,
-    taskDefinition: taskDefinition,
+    taskDefinition: taskDefinitions.taskDefinitionArns[0],
     count: 1,
     networkConfiguration: {
       awsvpcConfiguration: {
