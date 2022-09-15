@@ -89,6 +89,7 @@ test("Happy path: Start task and see it finish with success", async () => {
   expect(spySend.mock.calls.length).toBe(8);
   expect(result.success).toBe(true);
   expect(result.exitCode).toBe(0);
+  expect(result.taskArn).toBe("arn://unit-test");
 });
 
 test("Happy path: Start task and see it finish with failure", async () => {
@@ -119,4 +120,5 @@ test("Happy path: Start task and see it finish with failure", async () => {
   // Assert
   expect(result.success).toBe(false);
   expect(result.exitCode).toBe(exitCode);
+  expect(result.taskArn).toBe("arn://unit-test");
 });

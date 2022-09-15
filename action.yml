@@ -35,6 +35,9 @@ outputs:
   exit_code:
     description: "The exit code of the container"
     value: ""
+  task_arn:
+    description: "The Task ARN"
+    value: ""
 runs:
   using: "composite"
   steps:

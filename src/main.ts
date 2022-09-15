@@ -136,7 +136,8 @@ async function hasTaskFinished(ecsClient: ECSClient, cluster: string, container:
 
 type RunResult = {
   success: boolean,
-  exitCode: number
+  exitCode: number,
+  taskArn: string
 }
 
 export async function run(
@@ -163,7 +164,8 @@ export async function run(
           clearInterval(intervalId);
           resolve({
             success: result.exitCode === 0,
-            exitCode: result.exitCode
+            exitCode: result.exitCode,
+            taskArn: taskArn
           });
         }
       } catch(e){
@@ -213,6 +215,7 @@ if (require.main === module) {
   ).then((result) => {
       core.setOutput('success', result.success);
       core.setOutput('exit_code', result.exitCode);
+      core.setOutput('task_arn', result.taskArn);
     })
     .catch((e) => {
       core.setFailed(e);
