@@ -31,7 +31,7 @@ inputs:
 outputs:
   success:
     description: "True if the task succeeds"
-    value: ${{ steps.run_script.outputs.success}
+    value: ${{ steps.run_script.outputs.success}}
   exit_code:
     description: "The exit code of the container"
     value: ${{ steps.run_script.outputs.exit_code}}
