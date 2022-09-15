@@ -11,13 +11,16 @@ import {
 import * as core from '@actions/core'
 
 type TaskArn = string;
+type SubnetId = string;
+type SecurityGroupId = string;
 
 async function startTask(
     ecsClient: ECSClient,
     cluster: string,
     taskDefinition: string,
-    subnets: string[],
-    securityGroups: string[],
+    subnets: SubnetId[],
+    securityGroups: SecurityGroupId[],
+    container: string,
     command: string[]
 ) : Promise<TaskArn> {
 
@@ -39,18 +42,20 @@ async function startTask(
     networkConfiguration: {
       awsvpcConfiguration: {
         subnets: subnets,
-        securityGroups: securityGroups
+        securityGroups: securityGroups,
+        assignPublicIp: "ENABLED"
       }
     },
     launchType: LaunchType.FARGATE,
     overrides: {
       containerOverrides: [{
+        name: container,
         command: command,
       }]
     }
   })
   const runTaskResult = await ecsClient.send(runTaskCommand);
-  if (runTaskResult.failures) {
+  if (runTaskResult.failures && runTaskResult.failures.length > 0) {
     console.log("Failed to start task: ", runTaskResult.failures)
     throw new Error(runTaskResult.failures[0].reason)
   } else if (runTaskResult.tasks === undefined || runTaskResult.tasks.length === 0) {
@@ -71,14 +76,14 @@ type HasFinishedResult = {
   exitCode: number
 };
 
-async function hasTaskFinished(ecsClient: ECSClient, cluster: string, container: string, taskArn: string) : Promise<HasFinishedResult> {
+async function hasTaskFinished(ecsClient: ECSClient, cluster: string, container: string, taskArn: TaskArn) : Promise<HasFinishedResult> {
   const describeTaskCommand = new DescribeTasksCommand({
     cluster: cluster,
     tasks: [taskArn]
   });
   console.log(`Checking status on task ${taskArn}`);
   const describeTaskResult = await ecsClient.send(describeTaskCommand);
-  if (describeTaskResult.failures) {
+  if (describeTaskResult.failures && describeTaskResult.failures.length > 0) {
     console.log("Describe Task had failures");
     console.log (describeTaskResult.failures);
     return {
@@ -108,10 +113,18 @@ async function hasTaskFinished(ecsClient: ECSClient, cluster: string, container:
       const containerStatus = containersOfInterest[0];
       const exitCode = containerStatus.exitCode;
       console.log(`Task ${taskArn} exit code of ${container} is ${exitCode}`);
-      return {
-        hasFinished: true,
-        exitCode: exitCode || 0
-      };
+      if (exitCode === undefined){
+        return {
+          hasFinished: true,
+          exitCode: -99
+        };
+      } else {
+        console.log(`Task ${taskArn} exit code of ${container} is ${exitCode}`);
+        return {
+          hasFinished: true,
+          exitCode: exitCode
+        };
+      }
     } else {
       return {
         hasFinished: true,
@@ -130,14 +143,15 @@ export async function run(
   ecsClient: ECSClient,
   ecsCluster: string,
   ecsTaskDefinition: string,
-  subnets: string[],
-  securityGroups: string[],
+  subnets: SubnetId[],
+  securityGroups: SecurityGroupId[],
   container: string,
   command: string[],
   checkIntervalMs: number = 5000
 ): Promise<RunResult> {
 
-  const taskArn = await startTask(ecsClient, ecsCluster, ecsTaskDefinition, subnets, securityGroups, command);
+  console.log(`Starting task on cluster ${ecsCluster} for task definition ${ecsTaskDefinition}`);
+  const taskArn = await startTask(ecsClient, ecsCluster, ecsTaskDefinition, subnets, securityGroups, container, command);
 
   return new Promise<RunResult>( (resolve, reject) => {
 
@@ -169,8 +183,8 @@ if (require.main === module) {
 
   const ecsCluster = getInput("ecs_cluster");
   const ecsTaskDefinition = getInput("ecs_task_definition");
-  const securityGroupIds = getInput("security_group_ids").trim().split(",");
-  const subnets = getInput("subnets").trim().split(",");
+  const securityGroupIds = getInput("security_group_ids").trim().split(",") as SecurityGroupId[];
+  const subnets = getInput("subnets").trim().split(",") as SubnetId[];
   const container = getInput("container");
   const command = getInput("command").trim().split(",");
 
@@ -192,8 +206,8 @@ if (require.main === module) {
       ecsClient,
       ecsCluster,
       ecsTaskDefinition,
-      securityGroupIds,
       subnets,
+      securityGroupIds,
       container,
       command
   ).then((result) => {
