@@ -31,13 +31,13 @@ inputs:
 outputs:
   success:
     description: "True if the task succeeds"
-    value: ""
+    value: ${{ steps.run_script.outputs.success}
   exit_code:
     description: "The exit code of the container"
-    value: ""
+    value: ${{ steps.run_script.outputs.exit_code}
   task_arn:
     description: "The Task ARN"
-    value: ""
+    value: ${{ steps.run_script.outputs.task_arn}
 runs:
   using: "composite"
   steps:
@@ -45,6 +45,7 @@ runs:
       with:
         node-version: 18
     - name: 'Run Script'
+      id: run_script
       run: 'node $GITHUB_ACTION_PATH/dist/main.js'
       shell: 'bash'
       env:

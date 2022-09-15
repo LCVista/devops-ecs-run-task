@@ -119,7 +119,6 @@ async function hasTaskFinished(ecsClient: ECSClient, cluster: string, container:
           exitCode: -99
         };
       } else {
-        console.log(`Task ${taskArn} exit code of ${container} is ${exitCode}`);
         return {
           hasFinished: true,
           exitCode: exitCode
