@@ -34,10 +34,10 @@ outputs:
     value: ${{ steps.run_script.outputs.success}
   exit_code:
     description: "The exit code of the container"
-    value: ${{ steps.run_script.outputs.exit_code}
+    value: ${{ steps.run_script.outputs.exit_code}}
   task_arn:
     description: "The Task ARN"
-    value: ${{ steps.run_script.outputs.task_arn}
+    value: ${{ steps.run_script.outputs.task_arn}}
 runs:
   using: "composite"
   steps:
