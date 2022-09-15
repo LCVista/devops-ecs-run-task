@@ -1,0 +1,60 @@
+name: 'ECS Run Task (Fargate Only)'
+description: 'Calls ECS Run Task and watches for container to exit'
+inputs:
+  aws_region:
+    description: 'The AWS Region'
+    required: true
+  aws_access_key_id:
+    description: "AWS Access Key ID"
+    required: true
+  aws_secret_access_key:
+    description: "AWS Secret Access Key"
+    required: true
+  ecs_cluster:
+    description: 'The cluster to launch the task'
+    required: true
+  ecs_task_definition:
+    description: 'The task definition to use for launching'
+    required: true
+  security_group_ids:
+    description: 'Security Groups for Fargate Launch Type'
+    required: true
+  subnets:
+    description: 'Subnets for Fargate Launch Type'
+    required: true
+  container:
+    description: 'The container name to monitor'
+    required: true
+  command:
+    description: "Override for the target container"
+    required: false
+outputs:
+  success:
+    description: "True if the task succeeds"
+    value: ""
+  exit_code:
+    description: "The exit code of the container"
+    value: ""
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 18
+    - name: 'Run Script'
+      run: 'node $GITHUB_ACTION_PATH/dist/main.js'
+      shell: 'bash'
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key_id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
+        AWS_REGION: ${{ inputs.aws_region }}
+        ecs_cluster: ${{ inputs.ecs_cluster }}
+        ecs_task_definition: ${{ inputs.ecs_task_definition }}
+        security_group_ids: ${{ inputs.security_group_ids }}
+        subnets: ${{ inputs.subnets }}
+        container: ${{ inputs.container }}
+        command: ${{ inputs.command }}
+
+branding:
+  icon: 'target'
+  color: 'gray-dark'

@@ -1,0 +1,44 @@
+name: "Build"
+
+on:
+  push:
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    timeout-minutes: 10
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: corepack enable
+      - name: yarn install and build
+        timeout-minutes: 5 # With cached dependencies, this should be very fast
+        run: |
+          yarn
+          yarn run format
+          yarn run build
+      - name: yarn lint
+        run: |
+          yarn run lint
+      - name: yarn test
+        timeout-minutes: 5
+        run: |
+          yarn run lint
+          yarn run test
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage-report
+          path: coverage/lcov-report/*
+          retention-days: 5
+      # Just in case someone commits a change without running 'yarn run build'
+      - uses: EndBug/add-and-commit@v9
+        with:
+          add: 'dist'
+          message: 'Committing transpiled javascript'

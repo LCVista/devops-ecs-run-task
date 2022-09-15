@@ -1,0 +1,7 @@
+**/build/*/**/*.js
+**/dist/**/*.js
+**/fixtures/**
+**/node_modules/**
+**/out-*/**/*.js
+**/out-editor-*/**
+**/out/**/*.js
