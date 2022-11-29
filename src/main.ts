@@ -215,6 +215,9 @@ if (require.main === module) {
       core.setOutput('success', result.success);
       core.setOutput('exit_code', result.exitCode);
       core.setOutput('task_arn', result.taskArn);
+      if (result.exitCode !== 0){
+        core.setFailed("Exit code not zero");
+      }
     })
     .catch((e) => {
       core.setFailed(e);
