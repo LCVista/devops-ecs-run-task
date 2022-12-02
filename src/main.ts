@@ -212,6 +212,8 @@ if (require.main === module) {
       container,
       command
   ).then((result) => {
+      console.log(`Sumologic logs from the task are here:`);
+      console.log(`https://service.us2.sumologic.com/ui#/search/create?query=_sourceCategory=*%20%7C%20where%20ecs_task_arn=%22${result.taskArn}%22&endTime=-60m`)
       core.setOutput('success', result.success);
       core.setOutput('exit_code', result.exitCode);
       core.setOutput('task_arn', result.taskArn);
