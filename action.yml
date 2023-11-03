@@ -28,6 +28,12 @@ inputs:
   command:
     description: "Override for the target container"
     required: false
+  tags:
+    description: "Tasks custom tags: key:value;key:value;key:value"
+    required: false
+  group:
+    description: "Tasks group for querying"
+    required: false
 outputs:
   success:
     description: "True if the task succeeds"
