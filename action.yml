@@ -64,6 +64,9 @@ runs:
         subnets: ${{ inputs.subnets }}
         container: ${{ inputs.container }}
         command: ${{ inputs.command }}
+        tags: ${{ inputs.tags }}
+        group: ${{ inputs.group }}
+
 
 branding:
   icon: 'target'
