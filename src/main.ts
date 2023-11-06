@@ -201,7 +201,7 @@ if (require.main === module) {
   const container:string = getInput("container")!;
   const command = getInput("command")!.trim().split(",");
   const tagsChain = getInput("tags");  
-  let tags:Tag[];
+  let tags: Tag[] | undefined = undefined;
   if (tagsChain) {
     tags = tagsChain.trim().split(";").map(rawTag=>{
       const [key,value] = rawTag.split(':');
@@ -219,6 +219,7 @@ if (require.main === module) {
   console.log(`subnets = ${subnets}`);
   console.log(`container = ${container}`);
   console.log(`command = ${command}`);
+  console.log(`tagsChain = ${tagsChain}`);
   console.log(`tags`, tags);
   console.log(`group = ${group}`);
 
