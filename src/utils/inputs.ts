@@ -1,7 +1,11 @@
 import * as core from '@actions/core'
 
-export function getInput(key: string): string {
-  return String(_getInput(key));
+export function getInput(key: string): string | undefined {
+  const value = _getInput(key);
+  if(value){
+    return String(value);
+  }
+  return undefined;
 }
 
 export function getInputBoolean(key: string): boolean {
@@ -22,7 +26,5 @@ export function getInputNumber(key: string): number | undefined {
 }
 
 function _getInput(key: string): any {
-
   return core.getInput(key) || process.env[key];
-
 }

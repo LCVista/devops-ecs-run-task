@@ -194,20 +194,24 @@ if (require.main === module) {
   console.log(`AWS Credentials.accessKeyId = ${awsCredentials.accessKeyId.substring(1,3)}*******`);
   console.log(`AWS Region = ${awsCredentials.region}`);
 
-  const ecsCluster = getInput("ecs_cluster");
-  const ecsTaskDefinition = getInput("ecs_task_definition");
-  const securityGroupIds = getInput("security_group_ids").trim().split(",") as SecurityGroupId[];
-  const subnets = getInput("subnets").trim().split(",") as SubnetId[];
-  const container = getInput("container");
-  const command = getInput("command").trim().split(",");
-  const tags = getInput("tags").trim().split(";").map(rawTag=>{
-    const [key,value] = rawTag.split(':');
-    if (key && value){
-      return {key,value};
-    }
-    return null;    
-  }).filter(tag=>!!tag) as Tag[];
-  const group = getInput("group").trim();
+  const ecsCluster:string = getInput("ecs_cluster")!;
+  const ecsTaskDefinition:string = getInput("ecs_task_definition")!;
+  const securityGroupIds = getInput("security_group_ids")!.trim().split(",") as SecurityGroupId[];
+  const subnets = getInput("subnets")!.trim().split(",") as SubnetId[];
+  const container:string = getInput("container")!;
+  const command = getInput("command")!.trim().split(",");
+  const tagsChain = getInput("tags");  
+  let tags:Tag[];
+  if (tagsChain) {
+    tags = tagsChain.trim().split(";").map(rawTag=>{
+      const [key,value] = rawTag.split(':');
+      if (key && value){
+        return {key,value};
+      }
+      return null;    
+    }).filter(tag=>!!tag) as Tag[];
+  }
+  const group = getInput("group");
 
   console.log(`ecsCluster = ${ecsCluster}`);
   console.log(`ecsTaskDefinition = ${ecsTaskDefinition}`);
@@ -215,7 +219,7 @@ if (require.main === module) {
   console.log(`subnets = ${subnets}`);
   console.log(`container = ${container}`);
   console.log(`command = ${command}`);
-  console.log(`tags = ${tags}`);
+  console.log(`tags`, tags);
   console.log(`group = ${group}`);
 
   const ecsClient = new ECSClient({
