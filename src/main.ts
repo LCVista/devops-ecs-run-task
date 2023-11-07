@@ -6,7 +6,9 @@ import {
   LaunchType,
   ListTaskDefinitionsCommand,
   RunTaskCommand,
-  SortOrder
+  RunTaskCommandInput,
+  SortOrder,
+  Tag
 } from "@aws-sdk/client-ecs";
 import * as core from '@actions/core'
 
@@ -21,7 +23,9 @@ async function startTask(
     subnets: SubnetId[],
     securityGroups: SecurityGroupId[],
     container: string,
-    command: string[]
+    command: string[],
+    tags?: Tag[],
+    group?: string,
 ) : Promise<TaskArn> {
 
   const listDefinitionsCommand = new ListTaskDefinitionsCommand({
@@ -34,8 +38,7 @@ async function startTask(
   if (taskDefinitions.taskDefinitionArns === undefined || taskDefinitions.taskDefinitionArns.length === 0) {
     throw Error(`Task definition ${taskDefinition} not found`);
   }
-
-  const runTaskCommand = new RunTaskCommand({
+  let runTaskInput: RunTaskCommandInput = {
     cluster: cluster,
     taskDefinition: taskDefinitions.taskDefinitionArns[0],
     count: 1,
@@ -53,7 +56,14 @@ async function startTask(
         command: command,
       }]
     }
-  })
+  };
+  if (tags && tags.length > 0){
+    runTaskInput.tags = tags;
+  }
+  if (group){
+    runTaskInput.group = group;
+  }
+  const runTaskCommand = new RunTaskCommand(runTaskInput)
   const runTaskResult = await ecsClient.send(runTaskCommand);
   if (runTaskResult.failures && runTaskResult.failures.length > 0) {
     console.log("Failed to start task: ", runTaskResult.failures)
@@ -147,11 +157,13 @@ export async function run(
   securityGroups: SecurityGroupId[],
   container: string,
   command: string[],
-  checkIntervalMs: number = 5000
+  checkIntervalMs: number = 5000,
+  tags?: Tag[],
+  group?: string
 ): Promise<RunResult> {
 
   console.log(`Starting task on cluster ${ecsCluster} for task definition ${ecsTaskDefinition}`);
-  const taskArn = await startTask(ecsClient, ecsCluster, ecsTaskDefinition, subnets, securityGroups, container, command);
+  const taskArn = await startTask(ecsClient, ecsCluster, ecsTaskDefinition, subnets, securityGroups, container, command, tags, group);
 
   return new Promise<RunResult>( (resolve, reject) => {
 
@@ -182,12 +194,24 @@ if (require.main === module) {
   console.log(`AWS Credentials.accessKeyId = ${awsCredentials.accessKeyId.substring(1,3)}*******`);
   console.log(`AWS Region = ${awsCredentials.region}`);
 
-  const ecsCluster = getInput("ecs_cluster");
-  const ecsTaskDefinition = getInput("ecs_task_definition");
-  const securityGroupIds = getInput("security_group_ids").trim().split(",") as SecurityGroupId[];
-  const subnets = getInput("subnets").trim().split(",") as SubnetId[];
-  const container = getInput("container");
-  const command = getInput("command").trim().split(",");
+  const ecsCluster:string = getInput("ecs_cluster")!;
+  const ecsTaskDefinition:string = getInput("ecs_task_definition")!;
+  const securityGroupIds = getInput("security_group_ids")!.trim().split(",") as SecurityGroupId[];
+  const subnets = getInput("subnets")!.trim().split(",") as SubnetId[];
+  const container:string = getInput("container")!;
+  const command = getInput("command")!.trim().split(",");
+  const tagsChain = getInput("tags");  
+  let tags: Tag[] | undefined = undefined;
+  if (tagsChain) {
+    tags = tagsChain.trim().split(";").map(rawTag=>{
+      const [key,value] = rawTag.split(':');
+      if (key && value){
+        return {key,value};
+      }
+      return null;    
+    }).filter(tag=>!!tag) as Tag[];
+  }
+  const group = getInput("group");
 
   console.log(`ecsCluster = ${ecsCluster}`);
   console.log(`ecsTaskDefinition = ${ecsTaskDefinition}`);
@@ -195,6 +219,9 @@ if (require.main === module) {
   console.log(`subnets = ${subnets}`);
   console.log(`container = ${container}`);
   console.log(`command = ${command}`);
+  console.log(`tagsChain = ${tagsChain}`);
+  console.log(`tags`, tags);
+  console.log(`group = ${group}`);
 
   const ecsClient = new ECSClient({
     credentials: {
@@ -210,7 +237,10 @@ if (require.main === module) {
       subnets,
       securityGroupIds,
       container,
-      command
+      command,
+      undefined,
+      tags,
+      group,
   ).then((result) => {
       console.log(`Sumologic logs from the task are here:`);
       console.log(`https://service.us2.sumologic.com/ui#/search/create?query=_sourceCategory=*%20%7C%20where%20ecs_task_arn=%22${result.taskArn}%22&endTime=-60m`)
