@@ -245,7 +245,7 @@ if (require.main === module) {
       const taskId = result.taskArn.split(`/`).reverse()[0];      
       const env = ecsCluster.split(`-`)[0];
       console.log(`AWS Cloudwatch logs from the task are here:`);
-      console.log(`https://us-west-2.console.aws.amazon.com/cloudwatch/home?region=us-west-2#logsV2:log-groups/log-group/$252Fecs$252F${env}$252Flcv-management/log-events/lcv-management$252Flcv-management$252F${taskId}`
+      console.log(`https://us-west-2.console.aws.amazon.com/cloudwatch/home?region=us-west-2#logsV2:log-groups/log-group/$252Fecs$252F${env}$252Flcv-management/log-events/lcv-management$252Flcv-management$252F${taskId}`);
     
       core.setOutput('success', result.success);
       core.setOutput('exit_code', result.exitCode);
