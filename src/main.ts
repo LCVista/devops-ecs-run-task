@@ -242,8 +242,11 @@ if (require.main === module) {
       tags,
       group,
   ).then((result) => {
-      console.log(`Sumologic logs from the task are here:`);
-      console.log(`https://service.us2.sumologic.com/ui#/search/create?query=_sourceCategory=*%20%7C%20where%20ecs_task_arn=%22${result.taskArn}%22&endTime=-60m`)
+      const taskId = result.taskArn.split(`/`).reverse()[0];      
+      const env = ecsTaskDefinition.split(`-`).reverse()[0];
+      console.log(`AWS Cloudwatch logs from the task are here:`);
+      console.log(`https://us-west-2.console.aws.amazon.com/cloudwatch/home?region=us-west-2#logsV2:log-groups/log-group/$252Fecs$252F${env}$252Flcv-management/log-events/lcv-management$252Flcv-management$252F${taskId}`);
+    
       core.setOutput('success', result.success);
       core.setOutput('exit_code', result.exitCode);
       core.setOutput('task_arn', result.taskArn);
