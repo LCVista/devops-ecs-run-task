@@ -28,6 +28,10 @@ inputs:
   command:
     description: "Override for the target container"
     required: false
+  command_delim:
+    default: ','
+    description: "Delimiter used to separate command arguments. Defaults to ','"
+    required: false
   tags:
     description: "Tasks custom tags: key:value;key:value;key:value"
     required: false
@@ -66,6 +70,7 @@ runs:
         command: ${{ inputs.command }}
         tags: ${{ inputs.tags }}
         group: ${{ inputs.group }}
+        command_delim: ${{ inputs.command_delim }}
 
 
 branding:
