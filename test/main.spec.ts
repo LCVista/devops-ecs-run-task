@@ -6,6 +6,7 @@ import {
   RunTaskCommand,
   RunTaskCommandOutput
 } from "@aws-sdk/client-ecs";
+import process from "node:process";
 
 beforeEach(() => {
   jest.resetAllMocks();
@@ -75,6 +76,7 @@ test("Happy path: Start task and see it finish with success", async () => {
 
   // Act
   let result = await run(
+      undefined,
       client,
       cluster,
       taskDefinition,
@@ -89,6 +91,7 @@ test("Happy path: Start task and see it finish with success", async () => {
   expect(spySend.mock.calls.length).toBe(8);
   expect(result.success).toBe(true);
   expect(result.exitCode).toBe(0);
+  expect(result.wasStopped).toBe(false);
   expect(result.taskArn).toBe("arn://unit-test");
 });
 
@@ -107,6 +110,7 @@ test("Happy path: Start task and see it finish with failure", async () => {
 
   // Act
   let result = await run(
+      undefined,
       client,
       cluster,
       taskDefinition,
@@ -120,5 +124,6 @@ test("Happy path: Start task and see it finish with failure", async () => {
   // Assert
   expect(result.success).toBe(false);
   expect(result.exitCode).toBe(exitCode);
+  expect(result.wasStopped).toBe(false);
   expect(result.taskArn).toBe("arn://unit-test");
 });

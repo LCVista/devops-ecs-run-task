@@ -2,6 +2,8 @@ import {getInput} from "./utils/inputs";
 import {getAwsCredentials} from "./utils/environment";
 import {
   DescribeTasksCommand,
+    StopTaskCommand,
+    StopTaskCommandInput,
   ECSClient,
   LaunchType,
   ListTaskDefinitionsCommand,
@@ -11,6 +13,8 @@ import {
   Tag
 } from "@aws-sdk/client-ecs";
 import * as core from '@actions/core'
+import NodeJS from "node:process";
+import process from "node:process";
 
 type TaskArn = string;
 type SubnetId = string;
@@ -143,13 +147,35 @@ async function hasTaskFinished(ecsClient: ECSClient, cluster: string, container:
   }
 }
 
+async function stopTask(ecsClient: ECSClient, cluster: string, container: string, taskArn: TaskArn, reason: string = "") : Promise<StopResult> {
+  const stopTaskCommand : StopTaskCommand = new StopTaskCommand({
+    cluster: cluster,
+    task: taskArn,
+    reason: reason
+  });
+  const result = await ecsClient.send(stopTaskCommand);
+  return {
+    taskArn: result.task?.taskArn || taskArn,
+    lastStatus: result.task?.lastStatus || "unknown",
+    stoppedAt: result.task?.stoppedAt?.toString() || ""
+  }
+}
+
+type StopResult = {
+  taskArn: string,
+  lastStatus: string,
+  stoppedAt: string
+}
+
 type RunResult = {
   success: boolean,
   exitCode: number,
-  taskArn: string
+  taskArn: string,
+  wasStopped: boolean
 }
 
 export async function run(
+  proc: NodeJS.Process | undefined,
   ecsClient: ECSClient,
   ecsCluster: string,
   ecsTaskDefinition: string,
@@ -176,7 +202,8 @@ export async function run(
           resolve({
             success: result.exitCode === 0,
             exitCode: result.exitCode,
-            taskArn: taskArn
+            taskArn: taskArn,
+            wasStopped: false
           });
         }
       } catch(e){
@@ -184,6 +211,35 @@ export async function run(
         reject(e);
       }
     }, checkIntervalMs);
+
+    if (proc) {
+      proc.on('SIGTERM', async () => {
+        console.log(`Received SIGTERM, stopping`);
+        clearInterval(intervalId);
+        const stopResult = await stopTask(ecsClient, ecsCluster, container, taskArn);
+        console.log(stopResult);
+        resolve({
+          success: false,
+          exitCode: 127,
+          taskArn: taskArn,
+          wasStopped: true
+        });
+      })
+
+      proc.on('SIGHUP', async () => {
+        console.log(`Received SIGHUP, stopping`);
+        clearInterval(intervalId);
+        const stopResult = await stopTask(ecsClient, ecsCluster, container, taskArn);
+        console.log(stopResult);
+        resolve({
+          success: false,
+          exitCode: 127,
+          taskArn: taskArn,
+          wasStopped: true
+        });
+      })
+    }
+
   })
 
 }
@@ -199,7 +255,9 @@ if (require.main === module) {
   const securityGroupIds = getInput("security_group_ids")!.trim().split(",") as SecurityGroupId[];
   const subnets = getInput("subnets")!.trim().split(",") as SubnetId[];
   const container:string = getInput("container")!;
-  const command = getInput("command")!.trim().split(",");
+  const commandDelim = getInput("command_delim")?.trim() || ",";
+  const commandRaw = getInput("command")!.trim();
+  const command = commandRaw.split(commandDelim);
   const tagsChain = getInput("tags");  
   let tags: Tag[] | undefined = undefined;
   if (tagsChain) {
@@ -218,8 +276,10 @@ if (require.main === module) {
   console.log(`securityGroupIds = ${securityGroupIds}`);
   console.log(`subnets = ${subnets}`);
   console.log(`container = ${container}`);
-  console.log(`command = ${command}`);
+  console.log(`commandDelim = ${commandDelim}`);
+  console.log(`command = ${commandRaw}`);
   console.log(`tagsChain = ${tagsChain}`);
+  console.log(`command = ${command}`);
   console.log(`tags`, tags);
   console.log(`group = ${group}`);
 
@@ -231,6 +291,7 @@ if (require.main === module) {
     region: awsCredentials.region,
   });
   run(
+      process,
       ecsClient,
       ecsCluster,
       ecsTaskDefinition,
