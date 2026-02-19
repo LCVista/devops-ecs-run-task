@@ -191,6 +191,11 @@ export async function run(
   console.log(`Starting task on cluster ${ecsCluster} for task definition ${ecsTaskDefinition}`);
   const taskArn = await startTask(ecsClient, ecsCluster, ecsTaskDefinition, subnets, securityGroups, container, command, tags, group);
 
+  const taskId = taskArn.split('/').reverse()[0];
+  const env = ecsTaskDefinition.split('-').reverse()[0];
+  console.log(`Started task: ${taskArn}`);
+  console.log(`CloudWatch logs: https://us-west-2.console.aws.amazon.com/cloudwatch/home?region=us-west-2#logsV2:log-groups/log-group/$252Fecs$252F${env}$252Flcv-management/log-events/lcv-management$252Flcv-management$252F${taskId}`);
+
   return new Promise<RunResult>( (resolve, reject) => {
 
     const intervalId = setInterval( async () => {
