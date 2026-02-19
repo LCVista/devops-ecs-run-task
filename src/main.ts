@@ -42,7 +42,7 @@ async function startTask(
   if (taskDefinitions.taskDefinitionArns === undefined || taskDefinitions.taskDefinitionArns.length === 0) {
     throw Error(`Task definition ${taskDefinition} not found`);
   }
-  let runTaskInput: RunTaskCommandInput = {
+  const runTaskInput: RunTaskCommandInput = {
     cluster: cluster,
     taskDefinition: taskDefinitions.taskDefinitionArns[0],
     count: 1,
